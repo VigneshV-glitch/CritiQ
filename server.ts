@@ -53,9 +53,9 @@ async function generateContentWithRetry(
 ): Promise<any> {
   const candidateModels = Array.from(new Set([
     primaryModel,
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
     'gemini-3.7-flash',
-    'gemini-2.5-pro',
-    'gemini-3.1-pro-preview',
     'gemini-flash-latest'
   ]));
 
@@ -366,7 +366,7 @@ app.get('/api/gemini/validate', async (req, res) => {
 
   const startTime = Date.now();
   try {
-    const response = await generateContentWithRetry(ai, 'gemini-3.7-flash', {
+    const response = await generateContentWithRetry(ai, 'gemini-3.6-flash', {
       contents: ['Ping test for Gemini API connectivity and quota validation. Respond with JSON: {"status": "ok", "message": "API key valid and active"}'],
       config: {
         responseMimeType: 'application/json',
@@ -377,7 +377,7 @@ app.get('/api/gemini/validate', async (req, res) => {
     return res.json({
       status: 'active',
       valid: true,
-      model: 'gemini-2.5-pro / gemini-3.7-flash',
+      model: 'gemini-3.6-flash',
       latencyMs,
       message: 'Gemini API key is valid, active, and quota is available.',
       keyConfigured: true,
@@ -439,7 +439,7 @@ Enforce standard UX guidelines (Fitts's Law, Hick's Law, Gestalt principles, WCA
 
 You must return a structured JSON response matching the response schema.`;
 
-    const response = await generateContentWithRetry(ai, 'gemini-2.5-flash', {
+    const response = await generateContentWithRetry(ai, 'gemini-3.6-flash', {
       contents: formattedContents,
       config: {
         systemInstruction,
