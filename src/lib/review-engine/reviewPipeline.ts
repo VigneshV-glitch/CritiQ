@@ -36,10 +36,25 @@ export class ParallelExecutionStrategy implements IReviewExecutionStrategy {
     userInstruction?: string,
     correctionStrategy?: string
   ): Promise<AgentResponse[]> {
-    console.log(`[Review Pipeline] Running ${agents.length} agents in Parallel...`);
+    console.log(`[Review Pipeline] Running ${agents.length} agents with rate-limit aware batching...`);
 
-    const promises = agents.map(agent => this.runAgentWithRetry(agent, screenModel, userInstruction, correctionStrategy));
-    return Promise.all(promises);
+    const results: AgentResponse[] = [];
+    const batchSize = 2; // Controlled concurrency to strictly respect Gemini RPM / connection limits
+
+    for (let i = 0; i < agents.length; i += batchSize) {
+      const batch = agents.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(agent => this.runAgentWithRetry(agent, screenModel, userInstruction, correctionStrategy))
+      );
+      results.push(...batchResults);
+      
+      // Brief pause between batches if more agents remain
+      if (i + batchSize < agents.length) {
+        await new Promise(resolve => setTimeout(resolve, 350));
+      }
+    }
+
+    return results;
   }
 
   private async runAgentWithRetry(

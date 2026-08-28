@@ -43,42 +43,64 @@ function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
-// Resilient wrapper to execute Gemini requests with automatic retries and backoff
+// Resilient wrapper to execute Gemini requests with automatic retries and multi-model fallbacks
 async function generateContentWithRetry(
   ai: GoogleGenAI,
-  model: string,
+  primaryModel: string,
   payload: { contents: any[]; config: any },
-  retries = 3,
-  initialDelay = 1200
+  retriesPerModel = 2,
+  initialDelay = 1000
 ): Promise<any> {
-  let delay = initialDelay;
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await ai.models.generateContent({
-        model,
-        ...payload,
-      });
-    } catch (err: any) {
-      const errStr = String(err?.message || err);
-      const isTransient =
-        errStr.includes('503') ||
-        errStr.includes('UNAVAILABLE') ||
-        errStr.includes('high demand') ||
-        errStr.includes('overloaded') ||
-        err?.status === 503 ||
-        err?.statusCode === 503;
+  const candidateModels = Array.from(new Set([
+    primaryModel,
+    'gemini-3.7-flash',
+    'gemini-2.5-pro',
+    'gemini-3.1-pro-preview',
+    'gemini-flash-latest'
+  ]));
 
-      if (isTransient && i < retries - 1) {
-        console.warn(
-          `[Critiq Backend] Gemini API returned transient 503/UNAVAILABLE (Attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2;
-        continue;
+  let lastError: any = null;
+
+  for (const model of candidateModels) {
+    let delay = initialDelay;
+    for (let i = 0; i < retriesPerModel; i++) {
+      try {
+        const res = await ai.models.generateContent({
+          model,
+          ...payload,
+        });
+        return res;
+      } catch (err: any) {
+        lastError = err;
+        const errStr = String(err?.message || err).toLowerCase();
+        const status = err?.status || err?.statusCode || 0;
+
+        const isRateLimit = status === 429 || errStr.includes('429') || errStr.includes('quota') || errStr.includes('exhausted') || errStr.includes('rate limit');
+        const isAuthError = status === 401 || status === 403 || errStr.includes('api key not valid');
+        const isNotFound = status === 404 || errStr.includes('not_found') || errStr.includes('no longer available');
+
+        // If auth error, fail fast immediately
+        if (isAuthError) {
+          throw err;
+        }
+
+        // If model not found or retired, switch to next candidate immediately
+        if (isNotFound) {
+          console.warn(`[Critiq Backend] Model ${model} unavailable (404/Retired). Switching to next candidate model...`);
+          break;
+        }
+
+        // If transient 503 / high demand or rate limit, wait and retry or switch model
+        if (i < retriesPerModel - 1) {
+          console.warn(`[Critiq Backend] Model ${model} returned transient error (Attempt ${i + 1}/${retriesPerModel}). Waiting ${delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay *= 2;
+        }
       }
-      throw err;
     }
   }
+
+  throw lastError || new Error('All Gemini model candidates failed.');
 }
 
 // Map severity helper for task 2
@@ -320,6 +342,71 @@ function getSimulatedAnalysis(
   };
 }
 
+// API Route: Validate Gemini API Key, connectivity, and quota status
+app.get('/api/gemini/validate', async (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
+    return res.json({
+      status: 'missing_key',
+      valid: false,
+      message: 'GEMINI_API_KEY environment variable is not configured or is a placeholder.',
+      keyConfigured: false,
+    });
+  }
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.json({
+      status: 'init_failed',
+      valid: false,
+      message: 'Could not initialize GoogleGenAI client.',
+      keyConfigured: true,
+    });
+  }
+
+  const startTime = Date.now();
+  try {
+    const response = await generateContentWithRetry(ai, 'gemini-3.7-flash', {
+      contents: ['Ping test for Gemini API connectivity and quota validation. Respond with JSON: {"status": "ok", "message": "API key valid and active"}'],
+      config: {
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const latencyMs = Date.now() - startTime;
+    return res.json({
+      status: 'active',
+      valid: true,
+      model: 'gemini-2.5-pro / gemini-3.7-flash',
+      latencyMs,
+      message: 'Gemini API key is valid, active, and quota is available.',
+      keyConfigured: true,
+      preview: response.text ? JSON.parse(response.text.trim()) : { status: 'ok' },
+    });
+  } catch (err: any) {
+    const latencyMs = Date.now() - startTime;
+    const errStr = String(err?.message || err || '').toLowerCase();
+    const status = err?.status || err?.statusCode || 0;
+    const isRateLimit = status === 429 || errStr.includes('429') || errStr.includes('quota') || errStr.includes('exhausted') || errStr.includes('rate limit') || errStr.includes('resource_exhausted');
+    const isAuthError = status === 401 || status === 403 || errStr.includes('api key not valid') || errStr.includes('unauthorized') || errStr.includes('invalid_argument');
+
+    return res.json({
+      status: isRateLimit ? 'rate_limited' : isAuthError ? 'invalid_key' : 'error',
+      valid: false,
+      latencyMs,
+      statusCode: status,
+      isRateLimit,
+      isAuthError,
+      message: isRateLimit
+        ? 'Gemini API free-tier rate limit reached (HTTP 429 - Resource Exhausted). The key is valid, but the free tier quota (15 RPM) is temporarily exceeded.'
+        : isAuthError
+        ? 'Invalid Gemini API key or unauthorized access.'
+        : `Gemini API test failed: ${err?.message || err}`,
+      keyConfigured: true,
+    });
+  }
+});
+
 // Sprint 1 Scope: Chat Interface Endpoint
 app.post('/api/critiq/chat', async (req, res) => {
   const { message, history } = req.body;
@@ -352,7 +439,7 @@ Enforce standard UX guidelines (Fitts's Law, Hick's Law, Gestalt principles, WCA
 
 You must return a structured JSON response matching the response schema.`;
 
-    const response = await generateContentWithRetry(ai, 'gemini-3.5-flash', {
+    const response = await generateContentWithRetry(ai, 'gemini-2.5-flash', {
       contents: formattedContents,
       config: {
         systemInstruction,
@@ -523,7 +610,7 @@ function isRetriableError(err: any): boolean {
 // Custom pipeline runner with precise retry delays: 0ms, 500ms, 1500ms, 3000ms
 async function runWithStrategicRetries<T>(
   pipelineFn: (attempt: number, extraWarning?: string) => Promise<T>,
-  delays = [0, 500, 1500, 3000]
+  delays = [0, 1000]
 ): Promise<T> {
   let lastError: any = null;
   let extraWarning = '';

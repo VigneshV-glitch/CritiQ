@@ -62,7 +62,7 @@ Return the completed layout parsing as a structured JSON matching the provided s
 
       // Execute Gemini model generation with structured response schema
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents,
         config: {
           systemInstruction: 'You are an advanced Computer Vision parser specializing in UI/UX wireframes. You extract raw, objective screen structure and output perfectly conforming JSON.',

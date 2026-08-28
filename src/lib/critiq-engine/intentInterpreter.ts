@@ -53,7 +53,7 @@ Map the instruction to:
 USER INSTRUCTION: "${instructionText}"`;
 
       const response = await this.aiClient.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           systemInstruction: 'You are an advanced intent analysis engine specializing in design operations. Classify the user instruction into structured JSON format.',

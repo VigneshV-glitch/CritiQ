@@ -86,7 +86,7 @@ STRICT COMPLIANCE DIRECTIVES:
 `;
 
       const response = await this.aiClient.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: userPrompt,
         config: {
           systemInstruction: this.getSystemInstruction(),
