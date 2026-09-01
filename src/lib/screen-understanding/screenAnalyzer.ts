@@ -404,29 +404,50 @@ Return the completed layout parsing as a structured JSON matching the provided s
       if (!match) return null;
       const type = match[1].toLowerCase();
       const data = match[2];
-      const buf = Buffer.from(data, 'base64');
 
-      if (type === 'png' && buf.length >= 24) {
-        const width = buf.readInt32BE(16);
-        const height = buf.readInt32BE(20);
+      // Cross-platform base64 decoding (works in Browser and Node.js without Buffer dependency)
+      let bytes: Uint8Array;
+      if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+        const binStr = window.atob(data);
+        bytes = new Uint8Array(binStr.length);
+        for (let j = 0; j < binStr.length; j++) {
+          bytes[j] = binStr.charCodeAt(j);
+        }
+      } else if (typeof atob === 'function') {
+        const binStr = atob(data);
+        bytes = new Uint8Array(binStr.length);
+        for (let j = 0; j < binStr.length; j++) {
+          bytes[j] = binStr.charCodeAt(j);
+        }
+      } else if (typeof globalThis !== 'undefined' && (globalThis as any).Buffer) {
+        bytes = new Uint8Array((globalThis as any).Buffer.from(data, 'base64'));
+      } else {
+        return null;
+      }
+
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+      if (type === 'png' && bytes.length >= 24) {
+        const width = view.getInt32(16, false);
+        const height = view.getInt32(20, false);
         return { width, height };
-      } else if ((type === 'jpeg' || type === 'jpg') && buf.length >= 4) {
+      } else if ((type === 'jpeg' || type === 'jpg') && bytes.length >= 4) {
         let i = 2;
-        while (i < buf.length - 8) {
-          if (buf[i] !== 0xFF) break;
-          const marker = buf[i + 1];
+        while (i < bytes.length - 8) {
+          if (bytes[i] !== 0xFF) break;
+          const marker = bytes[i + 1];
           if (marker === 0xD9 || marker === 0xDA) break;
           if (marker === 0xC0 || marker === 0xC1 || marker === 0xC2 || marker === 0xC3) {
-            const height = buf.readUInt16BE(i + 5);
-            const width = buf.readUInt16BE(i + 7);
+            const height = view.getUint16(i + 5, false);
+            const width = view.getUint16(i + 7, false);
             return { width, height };
           }
-          const length = buf.readUInt16BE(i + 2);
+          const length = view.getUint16(i + 2, false);
           i += length + 2;
         }
       }
     } catch (e) {
-      console.error('[Screen Analyzer] Error parsing image dimensions:', e);
+      console.warn('[Screen Analyzer] Fallback to default aspect ratio:', e);
     }
     return null;
   }
