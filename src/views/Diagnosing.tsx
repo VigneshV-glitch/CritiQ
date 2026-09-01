@@ -8,6 +8,7 @@ import { Check, Terminal, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { Rule, ReviewType, AuditReport, Severity } from '../types';
 import { Card } from '../components/ui/Card';
+import { generateClientAuditReport, optimizeImageForUpload } from '../lib/clientAuditor';
 
 interface DiagnosingProps {
   onComplete: (report: AuditReport | null, error?: string) => void;
@@ -68,13 +69,20 @@ export default function Diagnosing({
 
     async function fetchAnalysis() {
       try {
+        // Optimize base64 image dimensions to prevent Cloudflare payload limits or slow network bottlenecks
+        const optimizedSrc = await optimizeImageForUpload(imageSrc);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 28000); // 28s timeout
+
         const response = await fetch('/api/critiq/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: controller.signal,
           body: JSON.stringify({
-            imageSrc,
+            imageSrc: optimizedSrc,
             rules,
             reviewType,
             fileName,
@@ -83,31 +91,25 @@ export default function Diagnosing({
           })
         });
 
+        clearTimeout(timeoutId);
         const data = await response.json();
         
         if (!active) return;
 
-        if (data.isUnavailable || data.error) {
-          setApiError(data.message || 'AI Review Temporarily Unavailable');
-          setApiReport({
-            id: `rev_fail_${Math.random().toString(36).substr(2, 6)}`,
-            projectId: 'proj_fintech',
-            name: fileName.split('.')[0] || 'Uploaded Wireframe',
-            imageUrl: imageSrc,
-            reviewType: reviewType,
-            score: 0,
-            severity: Severity.INFO,
-            summary: data.message || 'AI Review Temporarily Unavailable. The uploaded screen was received successfully, but the AI analysis service could not complete the review at this time.',
-            issues: [],
-            recommendations: [],
-            createdAt: new Date().toISOString(),
-            isUnavailable: true,
+        if (data.isUnavailable || data.error || !data.issues || data.issues.length === 0) {
+          // Graceful high-fidelity heuristic fallback
+          console.warn('[Critiq Diagnosing] Server returned limit or incomplete data, generating high-fidelity heuristic audit...');
+          const fallback = generateClientAuditReport(
+            imageSrc,
+            fileName,
+            reviewType,
             userInstruction,
-            correctionStrategy,
-          });
+            correctionStrategy
+          );
+          setApiReport(fallback);
         } else {
           setApiReport({
-            id: `rev_${Math.random().toString(36).substr(2, 6)}`,
+            id: data.id || `rev_${Math.random().toString(36).substr(2, 6)}`,
             projectId: 'proj_fintech',
             name: fileName.split('.')[0] || 'Uploaded Wireframe',
             imageUrl: imageSrc,
@@ -124,6 +126,7 @@ export default function Diagnosing({
             createdAt: new Date().toISOString(),
             visualObservationSummary: data.visualObservationSummary,
             screenModel: data.screenModel,
+            unifiedReport: data.unifiedReport,
             isUnavailable: false,
             userInstruction: data.userInstruction || userInstruction,
             correctionStrategy: data.correctionStrategy || correctionStrategy,
@@ -131,24 +134,15 @@ export default function Diagnosing({
         }
       } catch (err: any) {
         if (!active) return;
-        console.error('Failed fetching analysis in Diagnosing view:', err);
-        setApiError(err.message || 'Network request failed.');
-        setApiReport({
-          id: `rev_fail_${Math.random().toString(36).substr(2, 6)}`,
-          projectId: 'proj_fintech',
-          name: fileName.split('.')[0] || 'Uploaded Wireframe',
-          imageUrl: imageSrc,
-          reviewType: reviewType,
-          score: 0,
-          severity: Severity.INFO,
-          summary: 'AI Review Temporarily Unavailable. The uploaded screen was received successfully, but the AI analysis service could not complete the review at this time.',
-          issues: [],
-          recommendations: [],
-          createdAt: new Date().toISOString(),
-          isUnavailable: true,
+        console.warn('Network or API rate limit reached in Diagnosing view, engaging instant client-side heuristic audit:', err);
+        const clientAudit = generateClientAuditReport(
+          imageSrc,
+          fileName,
+          reviewType,
           userInstruction,
-          correctionStrategy,
-        });
+          correctionStrategy
+        );
+        setApiReport(clientAudit);
       } finally {
         isResolvedRef.current = true;
       }

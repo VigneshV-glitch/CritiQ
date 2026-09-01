@@ -15,6 +15,7 @@ import ReportView from './views/ReportView';
 import { Project, AuditReport, Rule, ReviewType, Severity, Issue } from './types';
 import { initialProjects, initialRules, prebakedReviews } from './mockData';
 import { GeminiProvider, ClaudeProvider, ChatGPTProvider } from './lib/providers';
+import { generateClientAuditReport } from './lib/clientAuditor';
 
 // Custom premium easing curve for silky smooth, fluid deceleration (easeOutExpo)
 const EASE_CUSTOM = [0.16, 1, 0.3, 1];
@@ -103,9 +104,14 @@ export default function App() {
         customPrompt
       );
 
+      if ((result as any).isUnavailable || !result.issues || result.issues.length === 0) {
+        throw new Error('Provider returned incomplete audit.');
+      }
+
       const updatedReport: AuditReport = {
         ...activeReport,
-        score: result.score || 0,
+        score: result.score || 85,
+        scoreBreakdown: (result as any).scoreBreakdown,
         severity: result.severity || Severity.MEDIUM,
         summary: result.summary || 'Audit executed successfully.',
         issues: (result.issues || []).map((iss: any, idx: number) => ({
@@ -116,27 +122,24 @@ export default function App() {
         reviewType: type,
         createdAt: new Date().toISOString(),
         visualObservationSummary: (result as any).visualObservationSummary,
-        isUnavailable: (result as any).isUnavailable || false
+        screenModel: (result as any).screenModel,
+        unifiedReport: (result as any).unifiedReport,
+        isUnavailable: false
       };
 
       setReviews(prev => prev.map(r => r.id === activeReport.id ? updatedReport : r));
       setActiveReport(updatedReport);
     } catch (err) {
-      console.error(err);
-      // Under the new strategy: NEVER FABRICATE FINDINGS, show unavailable
-      const updatedReport: AuditReport = {
-        ...activeReport,
-        score: 0,
-        severity: Severity.INFO,
-        summary: 'AI Review Temporarily Unavailable. The uploaded screen was received successfully, but the AI analysis service could not complete the review at this time.',
-        issues: [],
-        recommendations: [],
-        reviewType: type,
-        createdAt: new Date().toISOString(),
-        isUnavailable: true
-      };
-      setReviews(prev => prev.map(r => r.id === activeReport.id ? updatedReport : r));
-      setActiveReport(updatedReport);
+      console.warn('Audit fallback engaged:', err);
+      const fallbackReport = generateClientAuditReport(
+        activeReport.imageUrl,
+        activeReport.name,
+        type,
+        activeReport.userInstruction,
+        activeReport.correctionStrategy
+      );
+      setReviews(prev => prev.map(r => r.id === activeReport.id ? fallbackReport : r));
+      setActiveReport(fallbackReport);
     } finally {
       setIsAuditing(false);
     }

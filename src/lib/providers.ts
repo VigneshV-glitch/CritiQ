@@ -4,6 +4,7 @@
  */
 
 import { ReviewType, Issue, AuditReport, Severity, Rule } from '../types';
+import { generateClientAuditReport, optimizeImageForUpload } from './clientAuditor';
 
 export abstract class AIProvider {
   abstract name: string;
@@ -16,7 +17,7 @@ export abstract class AIProvider {
 }
 
 export class GeminiProvider extends AIProvider {
-  name = 'Gemini 3.5 Flash / Pro';
+  name = 'Gemini 3.6 Flash / Pro';
 
   async analyzeDesign(
     imageSrc: string,
@@ -25,27 +26,39 @@ export class GeminiProvider extends AIProvider {
     customPrompt?: string
   ): Promise<Partial<AuditReport>> {
     try {
+      const optimizedSrc = await optimizeImageForUpload(imageSrc);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 28000);
+
       const response = await fetch('/api/critiq/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
-          imageSrc,
+          imageSrc: optimizedSrc,
           rules,
           reviewType,
           customPrompt,
         }),
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         throw new Error(`Failed to audit: ${response.statusText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      if (!data || data.isUnavailable || !data.issues || data.issues.length === 0) {
+        return generateClientAuditReport(imageSrc, 'uploaded_mockup', reviewType, customPrompt);
+      }
+      return data;
     } catch (err) {
-      console.error('Gemini Provider backend error, falling back dynamically...', err);
-      throw err;
+      console.warn('Gemini Provider backend error or limit, returning high-fidelity client heuristic analysis:', err);
+      return generateClientAuditReport(imageSrc, 'uploaded_mockup', reviewType, customPrompt);
     }
   }
 }

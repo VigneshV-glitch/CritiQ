@@ -335,6 +335,7 @@ function getSimulatedAnalysis(
     issues: demoIssues,
     recommendations: demoIssues.map(i => i.recommendation).slice(0, 4),
     isSimulated: true,
+    isUnavailable: false,
     screenModel: simulatedScreenModel,
     unifiedReport: critiqReview,
     userInstruction,

@@ -53,6 +53,8 @@ export interface AuditReport {
   recommendations: string[];
   createdAt: string;
   isUnavailable?: boolean;
+  isSimulated?: boolean;
+  unifiedReport?: any;
   visualObservationSummary?: any;
   screenModel?: ScreenModel;
   userInstruction?: string;

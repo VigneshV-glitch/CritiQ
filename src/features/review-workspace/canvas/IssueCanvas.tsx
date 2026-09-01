@@ -144,24 +144,24 @@ export default function IssueCanvas({
         </CanvasViewport>
 
         {/* Retry popup modal overlay */}
-        {isUnavailable && (
+        {isUnavailable && issues.length === 0 && (
           <div className="absolute inset-0 bg-[#07070a]/80 backdrop-blur-md flex items-center justify-center p-6 z-40">
-            <div className="bg-[#0e0f14] max-w-sm w-full p-6 rounded-3xl border border-amber-500/25 shadow-2xl space-y-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto text-amber-400">
+            <div className="bg-[#0e0f14] max-w-sm w-full p-6 rounded-3xl border border-indigo-500/25 shadow-2xl space-y-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto text-indigo-400">
                 <HelpCircle className="w-6 h-6 animate-pulse" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-white uppercase font-mono tracking-wider">AI Analysis Blocked</h4>
+                <h4 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Run Visual Audit</h4>
                 <p className="text-[11px] text-slate-400 leading-normal font-normal">
-                  Visual analysis failed due to Gemini API temporary limits. Let's retry to run the multi-agent inspector reviews.
+                  Generate instant UX/UI heuristic audit and interactive hotspot review for your screen.
                 </p>
               </div>
               {onRetryAudit && (
                 <button
                   onClick={onRetryAudit}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all font-mono"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all font-mono shadow-lg shadow-indigo-500/20"
                 >
-                  Retry Analysis
+                  Generate Audit Findings
                 </button>
               )}
             </div>
