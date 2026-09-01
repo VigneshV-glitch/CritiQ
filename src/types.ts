@@ -28,11 +28,11 @@ export interface BoundingBox {
 
 export interface Issue {
   id: string;
-  category: 'UX_RULES' | 'UI_RULES';
+  category: 'UX_RULES' | 'UI_RULES' | 'ACCESSIBILITY' | 'DESIGN_SYSTEM' | string;
   ruleKey: string;
   title: string;
   description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical' | 'info';
+  severity: 'low' | 'medium' | 'high' | 'critical' | 'info' | Severity;
   boundingBox: BoundingBox | null;
   recommendation: string;
   confidence?: number; // Confidence score (0-100)

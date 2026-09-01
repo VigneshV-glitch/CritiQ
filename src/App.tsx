@@ -14,13 +14,15 @@ import ReportView from './views/ReportView';
 
 import { Project, AuditReport, Rule, ReviewType, Severity, Issue } from './types';
 import { initialProjects, initialRules, prebakedReviews } from './mockData';
-import { GeminiProvider, ClaudeProvider, ChatGPTProvider } from './lib/providers';
 import { generateClientAuditReport } from './lib/clientAuditor';
+import { AIProviderContextProvider, useAIGateway } from './state/AIProviderContext';
+import { AIGateway } from './ai/gateway/AIGateway';
+import { AIProviderHubModal } from './components/critiq/providers/AIProviderHubModal';
 
 // Custom premium easing curve for silky smooth, fluid deceleration (easeOutExpo)
 const EASE_CUSTOM = [0.16, 1, 0.3, 1];
 
-export default function App() {
+function AppContent() {
   const [workflowState, setWorkflowState] = useState<'landing' | 'diagnosing' | 'review' | 'report'>('landing');
   const [diagnosingFile, setDiagnosingFile] = useState<{ url: string; name: string } | null>(null);
   const [selectedDemoId, setSelectedDemoId] = useState<string | null>(null);
@@ -41,6 +43,8 @@ export default function App() {
   const [activeProvider, setActiveProvider] = useState<string>('gemini');
   const [isAuditing, setIsAuditing] = useState<boolean>(false);
   const [auditMessage, setAuditMessage] = useState<string>('');
+
+  const { selectedProvider, selectedModel, selectedStrategy, analyzeDesignWithGateway } = useAIGateway();
 
   const handleSelectDemo = (reviewId: string) => {
     const rev = reviews.find(r => r.id === reviewId);
@@ -84,28 +88,25 @@ export default function App() {
     setWorkflowState('review');
   };
 
-  // Runs active review calling the isolated Provider layer
+  // Runs active review calling the isolated Gateway layer
   const handleRunAudit = async (type: ReviewType, customPrompt?: string) => {
     if (!activeReport) return;
 
     setIsAuditing(true);
-    setAuditMessage(`Invoking ${activeProvider.toUpperCase()} vision model core. Enforcing UX guidelines...`);
+    setAuditMessage(`Invoking AI Gateway routing (${selectedProvider === 'auto' ? 'Auto Router' : selectedProvider.toUpperCase()}). Enforcing UX guidelines...`);
 
     try {
-      let provider;
-      if (activeProvider === 'claude') provider = new ClaudeProvider();
-      else if (activeProvider === 'chatgpt') provider = new ChatGPTProvider();
-      else provider = new GeminiProvider();
-
-      const result = await provider.analyzeDesign(
-        activeReport.imageUrl,
+      const result = await analyzeDesignWithGateway({
+        imageSrc: activeReport.imageUrl,
         rules,
-        type,
-        customPrompt
-      );
+        reviewType: type,
+        userInstruction: customPrompt || activeReport.userInstruction,
+        fileName: activeReport.name,
+        correctionStrategy: activeReport.correctionStrategy,
+      });
 
-      if ((result as any).isUnavailable || !result.issues || result.issues.length === 0) {
-        throw new Error('Provider returned incomplete audit.');
+      if (!result || !result.issues || result.issues.length === 0) {
+        throw new Error('Gateway returned incomplete audit.');
       }
 
       const updatedReport: AuditReport = {
@@ -369,6 +370,16 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      <AIProviderHubModal />
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <AIProviderContextProvider>
+      <AppContent />
+    </AIProviderContextProvider>
+  );
+}
+

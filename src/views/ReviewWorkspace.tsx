@@ -46,6 +46,7 @@ import MethodologyCard from '../features/review-workspace/reviewConfiguration/Me
 import AuditConfiguration from '../features/review-workspace/reviewConfiguration/AuditConfiguration';
 import AdvancedOptions from '../features/review-workspace/reviewConfiguration/AdvancedOptions';
 import { ReviewConfigurationProvider } from '../features/review-workspace/reviewConfiguration/ReviewConfigurationProvider';
+import { AIProviderSelector } from '../components/critiq/providers/AIProviderSelector';
 
 function HelpCircleWithTooltip({ content }: { content: string }) {
   const [show, setShow] = useState(false);
@@ -406,6 +407,8 @@ export default function ReviewWorkspace({
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <AIProviderSelector />
+
           <select 
             value={reviewType}
             onChange={(e) => setReviewType(e.target.value as ReviewType)}

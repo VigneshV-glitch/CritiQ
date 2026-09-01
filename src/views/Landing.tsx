@@ -26,6 +26,7 @@ import { AuditReport, ReviewType } from '../types';
 import { ReviewIntentInput } from '../components/critiq/upload/ReviewIntentInput';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AIProviderSelector } from '../components/critiq/providers/AIProviderSelector';
 
 interface LandingProps {
   reviews: AuditReport[];
@@ -249,6 +250,8 @@ export default function Landing({
 
         {/* User Context & Profile Actions */}
         <div className="flex items-center gap-3 relative z-30">
+          <AIProviderSelector />
+
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
