@@ -47,6 +47,8 @@ import AuditConfiguration from '../features/review-workspace/reviewConfiguration
 import AdvancedOptions from '../features/review-workspace/reviewConfiguration/AdvancedOptions';
 import { ReviewConfigurationProvider } from '../features/review-workspace/reviewConfiguration/ReviewConfigurationProvider';
 import { AIProviderSelector } from '../components/critiq/providers/AIProviderSelector';
+import { useAuth } from '../state/AuthContext';
+import { GoogleIcon } from '../components/critiq/auth/AuthModal';
 
 function HelpCircleWithTooltip({ content }: { content: string }) {
   const [show, setShow] = useState(false);
@@ -124,6 +126,7 @@ export default function ReviewWorkspace({
   onViewReport,
   onCloseWorkspace
 }: ReviewWorkspaceProps) {
+  const { user, openGoogleAuthModal, consumeGeminiCredit } = useAuth();
   // Legacy / Local UI states
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [reviewType, setReviewType] = useState<ReviewType>(ReviewType.FULL_AUDIT);
@@ -315,6 +318,14 @@ export default function ReviewWorkspace({
   };
 
   const handleRunFullAudit = () => {
+    if (!user) {
+      openGoogleAuthModal('Sign in with your Google account to run re-analysis using free Gemini AI credits', () => {
+        consumeGeminiCredit();
+        onRunAudit(reviewType);
+      });
+      return;
+    }
+    consumeGeminiCredit();
     onRunAudit(reviewType);
   };
 
@@ -407,6 +418,13 @@ export default function ReviewWorkspace({
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {user && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-mono text-slate-300 shrink-0">
+              <GoogleIcon className="w-3.5 h-3.5" />
+              <span>Gemini:</span>
+              <span className="text-emerald-400 font-bold">{user.geminiCredits ?? 50} Credits</span>
+            </div>
+          )}
           <AIProviderSelector />
 
           <select 

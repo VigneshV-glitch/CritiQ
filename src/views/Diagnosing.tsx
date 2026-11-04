@@ -8,6 +8,7 @@ import { Check, Terminal, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { Rule, ReviewType, AuditReport, Severity } from '../types';
 import { Card } from '../components/ui/Card';
+import { GoogleIcon } from '../components/critiq/auth/AuthModal';
 import { generateClientAuditReport, optimizeImageForUpload } from '../lib/clientAuditor';
 
 interface DiagnosingProps {
@@ -37,8 +38,11 @@ export default function Diagnosing({
 }: DiagnosingProps) {
   const [progress, setProgress] = useState(0);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [consoleLog, setConsoleLog] = useState<string>('Booting Critiq vision engine...');
-  const [allConsoleLogs, setAllConsoleLogs] = useState<string[]>(['Booting Critiq vision engine...']);
+  const [consoleLog, setConsoleLog] = useState<string>('Connecting to Google Gemini AI Studio (Free Vision Quota)...');
+  const [allConsoleLogs, setAllConsoleLogs] = useState<string[]>([
+    'Authenticated via Google Account...',
+    'Connecting to Google Gemini AI Studio (Free Vision Quota)...'
+  ]);
   const [apiReport, setApiReport] = useState<AuditReport | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isConsoleLogsExpanded, setIsConsoleLogsExpanded] = useState(false);
@@ -301,8 +305,14 @@ export default function Diagnosing({
           <span className="text-sm font-semibold text-white truncate max-w-[140px] sm:max-w-none">Critiq Inspection Engine</span>
         </div>
 
-        <div className="text-xs font-mono text-slate-400 truncate max-w-[120px] sm:max-w-none text-right">
-          Target: <span className="text-indigo-300 font-bold">{fileName}</span>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] font-mono text-blue-300">
+            <GoogleIcon className="w-3.5 h-3.5" />
+            <span>Gemini Vision Core</span>
+          </div>
+          <div className="text-xs font-mono text-slate-400 truncate max-w-[120px] sm:max-w-none text-right">
+            Target: <span className="text-indigo-300 font-bold">{fileName}</span>
+          </div>
         </div>
       </header>
 
@@ -356,7 +366,11 @@ export default function Diagnosing({
               </div>
             </div>
             
-            <div className="space-y-1">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono text-blue-300">
+                <GoogleIcon className="w-3 h-3" />
+                <span>Google Gemini AI Vision Engine • Free Credits Active</span>
+              </div>
               <h2 className="text-xl font-display font-semibold text-white tracking-tight">
                 Critiq is inspecting your design
               </h2>

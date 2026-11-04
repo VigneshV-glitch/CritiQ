@@ -30,6 +30,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { AIProviderSelector } from '../components/critiq/providers/AIProviderSelector';
 import { useAuth } from '../state/AuthContext';
+import { GoogleIcon } from '../components/critiq/auth/AuthModal';
 
 interface LandingProps {
   reviews: AuditReport[];
@@ -48,7 +49,7 @@ export default function Landing({
   userEmail: propUserEmail,
   onResetData
 }: LandingProps) {
-  const { user, logout, openLoginModal, openSignupModal } = useAuth();
+  const { user, logout, openGoogleAuthModal, consumeGeminiCredit } = useAuth();
   const effectiveEmail = user?.email || propUserEmail || '';
   const effectiveName = user?.name || (effectiveEmail ? effectiveEmail.split('@')[0] : '');
   const avatarLetter = effectiveName ? effectiveName[0].toUpperCase() : (effectiveEmail ? effectiveEmail[0].toUpperCase() : 'U');
@@ -163,6 +164,7 @@ export default function Landing({
   const handleStartAnalysis = () => {
     if (!uploadedImageSrc) return;
     const proceed = () => {
+      consumeGeminiCredit();
       onUploadImage(
         uploadedImageSrc, 
         uploadedFileName || 'uploaded_layout.png', 
@@ -172,7 +174,7 @@ export default function Landing({
     };
 
     if (!user) {
-      openLoginModal('Sign in to inspect your design and save your audit report', proceed);
+      openGoogleAuthModal('Google Account required to run UI inspections using free Gemini AI credits', proceed);
       return;
     }
 
@@ -269,17 +271,29 @@ export default function Landing({
           <AIProviderSelector />
 
           {effectiveEmail ? (
-            <>
+            <div className="flex items-center gap-2.5">
+              {/* Gemini Credits Indicator Pill */}
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-mono">
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-slate-300">Gemini:</span>
+                <span className="text-emerald-400 font-bold">{user?.geminiCredits ?? 50} Credits</span>
+              </div>
+
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
-                title="Account Profile & Settings"
+                title="Google Account & Gemini Credits"
               >
-                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-mono text-xs font-bold shadow-sm shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
-                  {avatarLetter}
+                <div className="relative shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-mono text-xs font-bold shadow-sm ring-1 ring-white/20">
+                    {avatarLetter}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <GoogleIcon className="w-2 h-2" />
+                  </div>
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-[10px] font-normal text-white leading-[16px] font-sans group-hover:text-indigo-200 transition-colors">
+                  <span className="text-[10px] font-normal text-white leading-[16px] font-sans group-hover:text-blue-200 transition-colors">
                     {effectiveName}
                   </span>
                   <span className="text-[10px] font-normal text-slate-400 leading-tight mt-0.5">
@@ -306,21 +320,49 @@ export default function Landing({
                       transition={{ duration: 0.2, ease: EASE_CUSTOM }}
                       className="absolute right-0 top-11 w-80 bg-[#070918]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-4 z-50 text-left space-y-4 font-sans"
                     >
-                      {/* User Identity Header */}
+                      {/* User Identity Header with Google Badge */}
                       <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-mono text-sm font-bold shadow-md shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
-                          {avatarLetter}
+                        <div className="relative shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-mono text-sm font-bold shadow-md ring-1 ring-white/20">
+                            {avatarLetter}
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm">
+                            <GoogleIcon className="w-2.5 h-2.5" />
+                          </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs font-bold text-white truncate font-sans">
                               {effectiveName}
                             </p>
-                            <span className="text-[9px] font-mono font-bold bg-[#0161ff]/20 text-indigo-300 border border-[#0161ff]/30 px-1.5 py-0.2 rounded">
-                              {user?.plan || 'PRO'}
+                            <span className="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.2 rounded">
+                              GOOGLE VERIFIED
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 truncate font-mono mt-0.5">{effectiveEmail}</p>
+                        </div>
+                      </div>
+
+                      {/* Gemini AI Credits Card */}
+                      <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/20 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-white flex items-center gap-1.5 font-sans">
+                            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                            Free Gemini AI Credits
+                          </span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {user?.geminiCredits ?? 50} / 50 Left
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-500" 
+                            style={{ width: `${Math.min(100, Math.max(0, ((user?.geminiCredits ?? 50) / 50) * 100))}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                          <span>Google AI Studio Quota</span>
+                          <span className="text-blue-300">Free Tier</span>
                         </div>
                       </div>
 
@@ -331,9 +373,9 @@ export default function Landing({
                           <span className="text-xs font-bold text-white font-mono">{reviews.length + 8} Completed</span>
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Engine</span>
-                          <span className="text-xs font-bold text-indigo-300 font-mono flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-[#0161ff]" /> WCAG 2.1
+                          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Vision Engine</span>
+                          <span className="text-xs font-bold text-blue-300 font-mono flex items-center gap-1">
+                            <GoogleIcon className="w-3 h-3" /> Gemini Flash
                           </span>
                         </div>
                       </div>
@@ -341,8 +383,22 @@ export default function Landing({
                       {/* Settings & Reset Action */}
                       <div className="space-y-1">
                         <div className="px-2 py-1 text-[10px] font-mono uppercase font-bold text-slate-400 tracking-wider">
-                          Workspace Actions
+                          Google Account Actions
                         </div>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            openGoogleAuthModal('Switch to another Google Account to use alternative Gemini credits');
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all flex items-center justify-between cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <GoogleIcon className="w-3.5 h-3.5" />
+                            <span>Switch Google Account</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500">Switch</span>
+                        </button>
 
                         <button
                           onClick={() => {
@@ -369,7 +425,7 @@ export default function Landing({
                         >
                           <div className="flex items-center gap-2">
                             <LogOut className="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-300 transition-colors" />
-                            <span>Sign Out</span>
+                            <span>Sign Out of Google</span>
                           </div>
                           <span className="text-[10px] font-mono text-rose-400/60">Log out</span>
                         </button>
@@ -379,7 +435,7 @@ export default function Landing({
                       <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
                         <span className="flex items-center gap-1.5 text-emerald-400">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                          Pro License Active
+                          Google Account Connected
                         </span>
                         <span>v2.4.0</span>
                       </div>
@@ -387,26 +443,16 @@ export default function Landing({
                   </>
                 )}
               </AnimatePresence>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => openLoginModal()}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <LogIn className="w-3.5 h-3.5 text-slate-400" />
-                <span>Log In</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openSignupModal()}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 border border-indigo-400/30 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Sign Up</span>
-              </button>
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openGoogleAuthModal('Sign in with Google to access your free Gemini AI inspection credits')}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/20 transition-all flex items-center gap-2 shadow-sm cursor-pointer group hover:border-blue-400/50"
+            >
+              <GoogleIcon className="w-4 h-4" />
+              <span>Sign in with Google</span>
+            </button>
           )}
         </div>
       </header>
@@ -427,9 +473,16 @@ export default function Landing({
               className="w-full max-w-2xl space-y-6 md:space-y-8 text-center my-auto"
             >
               <div className="space-y-4 max-w-2xl mx-auto">
-                <div className="inline-flex items-center gap-2 text-[10px] font-mono font-bold text-indigo-300 uppercase tracking-widest">
-                  <Sparkles className="w-3.5 h-3.5 text-[#0161ff]" />
-                  INTELLIGENT DESIGN INSPECTION
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div className="inline-flex items-center gap-2 text-[10px] font-mono font-bold text-indigo-300 uppercase tracking-widest">
+                    <Sparkles className="w-3.5 h-3.5 text-[#0161ff]" />
+                    INTELLIGENT DESIGN INSPECTION
+                  </div>
+                  <span className="text-slate-600">•</span>
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-sans font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                    <GoogleIcon className="w-3 h-3" />
+                    <span>Free Google Gemini AI Credits Active</span>
+                  </div>
                 </div>
                 
                 <h1 className="text-3xl sm:text-4xl md:text-[40px] w-[700px] max-w-full mx-auto font-display font-bold text-white tracking-tight leading-[1.12]">

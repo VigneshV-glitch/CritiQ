@@ -99,4 +99,7 @@ export interface AuthUser {
   plan?: string;
   avatar?: string;
   createdAt?: string;
+  provider: 'google';
+  geminiCredits: number;
+  geminiTier: string;
 }

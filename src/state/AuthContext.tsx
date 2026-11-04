@@ -4,56 +4,47 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { AuthUser } from '../types';
 
-export interface AuthUser {
+export interface GoogleAccountOption {
   id: string;
   name: string;
   email: string;
-  plan?: string;
   avatar?: string;
-  createdAt?: string;
-}
-
-interface StoredUser extends AuthUser {
-  password?: string;
+  geminiCredits: number;
+  geminiTier: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAuthModalOpen: boolean;
-  authModalMode: 'login' | 'signup';
   authPromptMessage: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: (account?: Partial<GoogleAccountOption>) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  openLoginModal: (promptMessage?: string, onSuccess?: () => void) => void;
-  openSignupModal: (promptMessage?: string, onSuccess?: () => void) => void;
+  consumeGeminiCredit: () => boolean;
+  openGoogleAuthModal: (promptMessage?: string, onSuccess?: () => void) => void;
   closeAuthModal: () => void;
-  setAuthModalMode: (mode: 'login' | 'signup') => void;
-  quickDemoLogin: () => Promise<void>;
-  continueAsGuest: () => void;
+  availableGoogleAccounts: GoogleAccountOption[];
 }
 
-const STORAGE_USERS_KEY = 'critiq_registered_users';
-const STORAGE_CURRENT_USER_KEY = 'critiq_current_user';
+const STORAGE_GOOGLE_USER_KEY = 'critiq_google_user';
+const STORAGE_CREDITS_KEY = 'critiq_google_gemini_credits';
 
-const DEFAULT_USERS: StoredUser[] = [
+export const DEFAULT_GOOGLE_ACCOUNTS: GoogleAccountOption[] = [
   {
-    id: 'usr_demo_1',
+    id: 'google_alex_chen',
     name: 'Alex Chen',
-    email: 'alex@critiq.ai',
-    password: 'password123',
-    plan: 'PRO',
-    createdAt: new Date().toISOString()
+    email: 'alex.chen.ux@gmail.com',
+    geminiCredits: 50,
+    geminiTier: 'Google AI Studio Free Tier'
   },
   {
-    id: 'usr_demo_2',
+    id: 'google_sarah_design',
     name: 'Sarah Connor',
-    email: 'sarah.design@critiq.ai',
-    password: 'password123',
-    plan: 'PRO',
-    createdAt: new Date().toISOString()
+    email: 'sarah.gemini.dev@gmail.com',
+    geminiCredits: 50,
+    geminiTier: 'Google AI Studio Free Tier'
   }
 ];
 
@@ -62,178 +53,111 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
   const [onSuccessCallback, setOnSuccessCallback] = useState<(() => void) | null>(null);
 
-  // Initialize registered users and active session on mount
+  // Restore existing session on mount
   useEffect(() => {
     try {
-      // Initialize pre-seeded users if none exist in localStorage
-      const existingUsersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-      if (!existingUsersRaw) {
-        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(DEFAULT_USERS));
-      }
-
-      // Restore active session if present
-      const storedUserRaw = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
-      if (storedUserRaw) {
-        const parsed = JSON.parse(storedUserRaw);
-        if (parsed && parsed.email) {
+      const stored = localStorage.getItem(STORAGE_GOOGLE_USER_KEY);
+      if (stored) {
+        const parsed: AuthUser = JSON.parse(stored);
+        if (parsed && parsed.provider === 'google' && parsed.email) {
+          // Restore dynamic credits if updated
+          const savedCredits = localStorage.getItem(`${STORAGE_CREDITS_KEY}_${parsed.id}`);
+          if (savedCredits !== null) {
+            parsed.geminiCredits = parseInt(savedCredits, 10);
+          }
           setUser(parsed);
         }
       }
     } catch (err) {
-      console.warn('Failed to read auth state from localStorage:', err);
+      console.warn('Failed to restore Google authentication state:', err);
     }
   }, []);
 
-  const getRegisteredUsers = (): StoredUser[] => {
+  const signInWithGoogle = async (account?: Partial<GoogleAccountOption>): Promise<{ success: boolean; error?: string }> => {
     try {
-      const data = localStorage.getItem(STORAGE_USERS_KEY);
-      if (data) {
-        return JSON.parse(data);
+      const accountToUse = account?.email ? account : DEFAULT_GOOGLE_ACCOUNTS[0];
+      const email = (accountToUse.email || 'developer@gmail.com').trim().toLowerCase();
+      const name = (accountToUse.name || email.split('@')[0] || 'Google User').trim();
+      const id = accountToUse.id || `google_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+      // Check stored credits or initialize with 50 free credits
+      let credits = 50;
+      const storedCredits = localStorage.getItem(`${STORAGE_CREDITS_KEY}_${id}`);
+      if (storedCredits !== null) {
+        credits = parseInt(storedCredits, 10);
+      } else {
+        localStorage.setItem(`${STORAGE_CREDITS_KEY}_${id}`, '50');
       }
-    } catch (err) {
-      console.warn('Failed to parse registered users:', err);
+
+      const googleUser: AuthUser = {
+        id,
+        name,
+        email,
+        plan: 'PRO',
+        provider: 'google',
+        geminiCredits: credits,
+        geminiTier: 'Google AI Studio Free Tier',
+        createdAt: new Date().toISOString()
+      };
+
+      localStorage.setItem(STORAGE_GOOGLE_USER_KEY, JSON.stringify(googleUser));
+      setUser(googleUser);
+      setIsAuthModalOpen(false);
+      setAuthPromptMessage(null);
+
+      // Execute queued action if any
+      if (onSuccessCallback) {
+        const cb = onSuccessCallback;
+        setOnSuccessCallback(null);
+        cb();
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Google authentication failed' };
     }
-    return DEFAULT_USERS;
-  };
-
-  const saveRegisteredUsers = (users: StoredUser[]) => {
-    try {
-      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    } catch (err) {
-      console.error('Failed to save registered users to localStorage:', err);
-    }
-  };
-
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedEmail) {
-      return { success: false, error: 'Email address is required' };
-    }
-    if (!trimmedPassword) {
-      return { success: false, error: 'Password is required' };
-    }
-
-    const users = getRegisteredUsers();
-    const foundUser = users.find(u => u.email.toLowerCase() === trimmedEmail);
-
-    if (!foundUser) {
-      return { success: false, error: 'No account found with this email. Please sign up.' };
-    }
-
-    if (foundUser.password && foundUser.password !== trimmedPassword) {
-      return { success: false, error: 'Incorrect password. Please try again.' };
-    }
-
-    const authUser: AuthUser = {
-      id: foundUser.id,
-      name: foundUser.name,
-      email: foundUser.email,
-      plan: foundUser.plan || 'PRO',
-      avatar: foundUser.avatar,
-      createdAt: foundUser.createdAt
-    };
-
-    try {
-      localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(authUser));
-    } catch (err) {
-      console.error('Failed to persist session:', err);
-    }
-
-    setUser(authUser);
-    setIsAuthModalOpen(false);
-
-    if (onSuccessCallback) {
-      const cb = onSuccessCallback;
-      setOnSuccessCallback(null);
-      cb();
-    }
-
-    return { success: true };
-  };
-
-  const signup = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedName) {
-      return { success: false, error: 'Full name is required' };
-    }
-    if (!trimmedEmail || !trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
-      return { success: false, error: 'Please enter a valid email address' };
-    }
-    if (trimmedPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' };
-    }
-
-    const users = getRegisteredUsers();
-    const existing = users.find(u => u.email.toLowerCase() === trimmedEmail);
-    if (existing) {
-      return { success: false, error: 'An account with this email address already exists' };
-    }
-
-    const newUser: StoredUser = {
-      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: trimmedName,
-      email: trimmedEmail,
-      password: trimmedPassword,
-      plan: 'PRO',
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedUsers = [newUser, ...users];
-    saveRegisteredUsers(updatedUsers);
-
-    const authUser: AuthUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      plan: newUser.plan,
-      createdAt: newUser.createdAt
-    };
-
-    try {
-      localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(authUser));
-    } catch (err) {
-      console.error('Failed to persist session:', err);
-    }
-
-    setUser(authUser);
-    setIsAuthModalOpen(false);
-
-    if (onSuccessCallback) {
-      const cb = onSuccessCallback;
-      setOnSuccessCallback(null);
-      cb();
-    }
-
-    return { success: true };
   };
 
   const logout = () => {
     try {
-      localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
+      localStorage.removeItem(STORAGE_GOOGLE_USER_KEY);
     } catch (err) {
-      console.error('Failed to clear session:', err);
+      console.error('Failed to clear Google session:', err);
     }
     setUser(null);
   };
 
-  const openLoginModal = (promptMessage?: string, onSuccess?: () => void) => {
-    setAuthModalMode('login');
-    setAuthPromptMessage(promptMessage || null);
-    setOnSuccessCallback(() => onSuccess || null);
-    setIsAuthModalOpen(true);
+  const consumeGeminiCredit = (): boolean => {
+    if (!user) {
+      return false;
+    }
+
+    const currentCredits = user.geminiCredits ?? 50;
+    if (currentCredits <= 0) {
+      return false;
+    }
+
+    const nextCredits = Math.max(0, currentCredits - 1);
+    const updatedUser: AuthUser = {
+      ...user,
+      geminiCredits: nextCredits
+    };
+
+    try {
+      localStorage.setItem(`${STORAGE_CREDITS_KEY}_${user.id}`, nextCredits.toString());
+      localStorage.setItem(STORAGE_GOOGLE_USER_KEY, JSON.stringify(updatedUser));
+    } catch (err) {
+      console.warn('Failed to persist decremented Gemini credits:', err);
+    }
+
+    setUser(updatedUser);
+    return true;
   };
 
-  const openSignupModal = (promptMessage?: string, onSuccess?: () => void) => {
-    setAuthModalMode('signup');
+  const openGoogleAuthModal = (promptMessage?: string, onSuccess?: () => void) => {
     setAuthPromptMessage(promptMessage || null);
     setOnSuccessCallback(() => onSuccess || null);
     setIsAuthModalOpen(true);
@@ -245,37 +169,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setOnSuccessCallback(null);
   };
 
-  const quickDemoLogin = async () => {
-    await login('alex@critiq.ai', 'password123');
-  };
-
-  const continueAsGuest = () => {
-    setIsAuthModalOpen(false);
-    setAuthPromptMessage(null);
-    if (onSuccessCallback) {
-      const cb = onSuccessCallback;
-      setOnSuccessCallback(null);
-      cb();
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
         isAuthModalOpen,
-        authModalMode,
         authPromptMessage,
-        login,
-        signup,
+        signInWithGoogle,
         logout,
-        openLoginModal,
-        openSignupModal,
+        consumeGeminiCredit,
+        openGoogleAuthModal,
         closeAuthModal,
-        setAuthModalMode,
-        quickDemoLogin,
-        continueAsGuest
+        availableGoogleAccounts: DEFAULT_GOOGLE_ACCOUNTS
       }}
     >
       {children}
@@ -290,4 +196,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
