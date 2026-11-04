@@ -13,9 +13,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   disabled?: boolean;
   children?: React.ReactNode;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export function Button({
+  type = 'button',
   variant = 'primary',
   size = 'md',
   isLoading = false,
@@ -43,6 +45,7 @@ export function Button({
 
   return (
     <button
+      type={type}
       disabled={disabled || isLoading}
       onClick={onClick}
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}

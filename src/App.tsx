@@ -18,6 +18,8 @@ import { generateClientAuditReport } from './lib/clientAuditor';
 import { AIProviderContextProvider, useAIGateway } from './state/AIProviderContext';
 import { AIGateway } from './ai/gateway/AIGateway';
 import { AIProviderHubModal } from './components/critiq/providers/AIProviderHubModal';
+import { AuthProvider } from './state/AuthContext';
+import { AuthModal } from './components/critiq/auth/AuthModal';
 
 // Custom premium easing curve for silky smooth, fluid deceleration (easeOutExpo)
 const EASE_CUSTOM = [0.16, 1, 0.3, 1];
@@ -281,7 +283,6 @@ function AppContent() {
                 onSelectRecentReview={handleSelectRecentReview}
                 onUploadImage={handleUploadImage}
                 onSelectDemo={handleSelectDemo}
-                userEmail="vigneshv7678@gmail.com"
                 onResetData={handleResetData}
               />
             </motion.div>
@@ -371,15 +372,18 @@ function AppContent() {
       </main>
 
       <AIProviderHubModal />
+      <AuthModal />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AIProviderContextProvider>
-      <AppContent />
-    </AIProviderContextProvider>
+    <AuthProvider>
+      <AIProviderContextProvider>
+        <AppContent />
+      </AIProviderContextProvider>
+    </AuthProvider>
   );
 }
 

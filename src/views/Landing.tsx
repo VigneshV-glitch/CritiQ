@@ -19,7 +19,9 @@ import {
   Layout,
   ShieldAlert,
   CheckCircle,
-  Smartphone
+  Smartphone,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuditReport, ReviewType } from '../types';
@@ -27,6 +29,7 @@ import { ReviewIntentInput } from '../components/critiq/upload/ReviewIntentInput
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { AIProviderSelector } from '../components/critiq/providers/AIProviderSelector';
+import { useAuth } from '../state/AuthContext';
 
 interface LandingProps {
   reviews: AuditReport[];
@@ -42,9 +45,13 @@ export default function Landing({
   onSelectRecentReview,
   onUploadImage,
   onSelectDemo,
-  userEmail = 'vigneshv7678@gmail.com',
+  userEmail: propUserEmail,
   onResetData
 }: LandingProps) {
+  const { user, logout, openLoginModal, openSignupModal } = useAuth();
+  const effectiveEmail = user?.email || propUserEmail || '';
+  const effectiveName = user?.name || (effectiveEmail ? effectiveEmail.split('@')[0] : '');
+  const avatarLetter = effectiveName ? effectiveName[0].toUpperCase() : (effectiveEmail ? effectiveEmail[0].toUpperCase() : 'U');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -155,12 +162,21 @@ export default function Landing({
 
   const handleStartAnalysis = () => {
     if (!uploadedImageSrc) return;
-    onUploadImage(
-      uploadedImageSrc, 
-      uploadedFileName || 'uploaded_layout.png', 
-      userInstruction, 
-      correctionStrategy
-    );
+    const proceed = () => {
+      onUploadImage(
+        uploadedImageSrc, 
+        uploadedFileName || 'uploaded_layout.png', 
+        userInstruction, 
+        correctionStrategy
+      );
+    };
+
+    if (!user) {
+      openLoginModal('Sign in to inspect your design and save your audit report', proceed);
+      return;
+    }
+
+    proceed();
   };
 
   return (
@@ -252,109 +268,146 @@ export default function Landing({
         <div className="flex items-center gap-3 relative z-30">
           <AIProviderSelector />
 
-          <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
-            title="Account Profile & Settings"
-          >
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-mono text-xs font-bold shadow-sm shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
-              {userEmail ? userEmail[0].toUpperCase() : 'V'}
-            </div>
-            <div className="hidden sm:flex flex-col text-left">
-              <span className="text-[10px] font-normal text-white leading-[16px] font-sans group-hover:text-indigo-200 transition-colors">
-                {userEmail ? userEmail.split('@')[0] : 'Vignesh V'}
-              </span>
-              <span className="text-[10px] font-normal text-slate-400 leading-tight mt-0.5">
-                {userEmail || 'vigneshv7678@gmail.com'}
-              </span>
-            </div>
-            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${showProfileMenu ? 'rotate-180 text-white' : ''}`} />
-          </button>
+          {effectiveEmail ? (
+            <>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
+                title="Account Profile & Settings"
+              >
+                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-mono text-xs font-bold shadow-sm shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
+                  {avatarLetter}
+                </div>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-[10px] font-normal text-white leading-[16px] font-sans group-hover:text-indigo-200 transition-colors">
+                    {effectiveName}
+                  </span>
+                  <span className="text-[10px] font-normal text-slate-400 leading-tight mt-0.5">
+                    {effectiveEmail}
+                  </span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${showProfileMenu ? 'rotate-180 text-white' : ''}`} />
+              </button>
 
-          {/* Profile Dropdown Card */}
-          <AnimatePresence>
-            {showProfileMenu && (
-              <>
-                {/* Backdrop to close menu */}
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowProfileMenu(false)} 
-                />
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.2, ease: EASE_CUSTOM }}
-                  className="absolute right-0 top-11 w-80 bg-[#070918]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-4 z-50 text-left space-y-4 font-sans"
-                >
-                  {/* User Identity Header */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-mono text-sm font-bold shadow-md shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
-                      {userEmail ? userEmail[0].toUpperCase() : 'V'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold text-white truncate font-sans">
-                          {userEmail ? userEmail.split('@')[0] : 'Vignesh V'}
-                        </p>
-                        <span className="text-[9px] font-mono font-bold bg-[#0161ff]/20 text-indigo-300 border border-[#0161ff]/30 px-1.5 py-0.2 rounded">
-                          PRO
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 truncate font-mono mt-0.5">{userEmail}</p>
-                    </div>
-                  </div>
-
-                  {/* Account Metrics */}
-                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Audits Run</span>
-                      <span className="text-xs font-bold text-white font-mono">{reviews.length + 8} Completed</span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Engine</span>
-                      <span className="text-xs font-bold text-indigo-300 font-mono flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-[#0161ff]" /> WCAG 2.1
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Settings & Reset Action */}
-                  <div className="space-y-1">
-                    <div className="px-2 py-1 text-[10px] font-mono uppercase font-bold text-slate-400 tracking-wider">
-                      Workspace Actions
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        if (confirm('Restore default factory templates? This resets all current upload records and restores sandbox mocks.')) {
-                          onResetData();
-                        }
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-rose-300 hover:bg-rose-500/10 transition-all flex items-center justify-between cursor-pointer group"
+              {/* Profile Dropdown Card */}
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <>
+                    {/* Backdrop to close menu */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowProfileMenu(false)} 
+                    />
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.2, ease: EASE_CUSTOM }}
+                      className="absolute right-0 top-11 w-80 bg-[#070918]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-4 z-50 text-left space-y-4 font-sans"
                     >
-                      <div className="flex items-center gap-2">
-                        <RotateCcw className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-                        <span>Reset Sandbox Templates</span>
+                      {/* User Identity Header */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-mono text-sm font-bold shadow-md shadow-indigo-600/30 ring-1 ring-white/20 shrink-0">
+                          {avatarLetter}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-white truncate font-sans">
+                              {effectiveName}
+                            </p>
+                            <span className="text-[9px] font-mono font-bold bg-[#0161ff]/20 text-indigo-300 border border-[#0161ff]/30 px-1.5 py-0.2 rounded">
+                              {user?.plan || 'PRO'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate font-mono mt-0.5">{effectiveEmail}</p>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500">Restore</span>
-                    </button>
-                  </div>
 
-                  {/* Account Status Footer */}
-                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                    <span className="flex items-center gap-1.5 text-emerald-400">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      Pro License Active
-                    </span>
-                    <span>v2.4.0</span>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                      {/* Account Metrics */}
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Audits Run</span>
+                          <span className="text-xs font-bold text-white font-mono">{reviews.length + 8} Completed</span>
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Engine</span>
+                          <span className="text-xs font-bold text-indigo-300 font-mono flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-[#0161ff]" /> WCAG 2.1
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Settings & Reset Action */}
+                      <div className="space-y-1">
+                        <div className="px-2 py-1 text-[10px] font-mono uppercase font-bold text-slate-400 tracking-wider">
+                          Workspace Actions
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            if (confirm('Restore default factory templates? This resets all current upload records and restores sandbox mocks.')) {
+                              onResetData();
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all flex items-center justify-between cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <RotateCcw className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                            <span>Reset Sandbox Templates</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500">Restore</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            logout();
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 transition-all flex items-center justify-between cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <LogOut className="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-300 transition-colors" />
+                            <span>Sign Out</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-rose-400/60">Log out</span>
+                        </button>
+                      </div>
+
+                      {/* Account Status Footer */}
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                        <span className="flex items-center gap-1.5 text-emerald-400">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          Pro License Active
+                        </span>
+                        <span>v2.4.0</span>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openLoginModal()}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <LogIn className="w-3.5 h-3.5 text-slate-400" />
+                <span>Log In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openSignupModal()}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 border border-indigo-400/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Sign Up</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

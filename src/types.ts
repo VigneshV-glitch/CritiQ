@@ -91,3 +91,12 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
 }
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  plan?: string;
+  avatar?: string;
+  createdAt?: string;
+}
