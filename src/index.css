@@ -1,10 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --header-height: calc(3.5rem + var(--safe-area-inset-top));
+}
+
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Manrope", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-display: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
   --color-indigo-600: #0161ff;
   
@@ -28,19 +36,75 @@
   50% { opacity: 0.8; filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.6)); }
 }
 
-/* Custom global styles to enhance Frosted Glass look */
+/* Custom global styles to enhance Frosted Glass look & Apple Safe Area */
 html, body {
-  background-color: #08080c;
-  color: #e2e8f0;
+  background-color: #040612;
+  color: #f1f5f9;
   font-family: var(--font-sans);
   overflow: hidden;
   height: 100vh;
+  min-height: 100dvh;
   width: 100vw;
   margin: 0;
   padding: 0;
+  overscroll-behavior-y: contain;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Classes */
+/* Apple-style touch manipulation to eliminate 300ms delay safely */
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Apple Pro Glassmorphism & Translucency Classes */
+.apple-toolbar {
+  background: rgba(8, 12, 26, 0.78);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.apple-sidebar {
+  background: rgba(6, 9, 20, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.apple-card {
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.3);
+}
+
+.apple-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.apple-card-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.apple-segmented-control {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 3px;
+  border-radius: 14px;
+}
+
+.apple-hud {
+  background: rgba(14, 17, 30, 0.82);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255, 255, 255, 0.08) inset;
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(16px);
@@ -97,36 +161,13 @@ html, body {
   width: 6px;
   height: 6px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.01);
-  border-radius: 10px;
+  background: transparent;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Animated glow accents */
-.glow-spot-indigo {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.glow-spot-violet {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+  background: rgba(255, 255, 255, 0.24);
 }

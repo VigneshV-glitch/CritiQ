@@ -135,6 +135,7 @@ export default function ReviewWorkspace({
   const [activeConfigStep, setActiveConfigStep] = useState<number>(1);
   const [showLeftSidebarMobile, setShowLeftSidebarMobile] = useState(false);
   const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
+  const [activeLeftTab, setActiveLeftTab] = useState<'scope' | 'methodology'>('scope');
 
   // Access Methodology-driven configuration store
   const { selectedMethodologyId, selectedProviderId } = useMethodologyStore();
@@ -401,68 +402,129 @@ export default function ReviewWorkspace({
         </svg>
       </div>
 
-      {/* Top bar */}
-      <header className="h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 bg-[#020512]/90 backdrop-blur-md border-b border-white/5 gap-2">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+      {/* Apple-Style Pro Window Toolbar */}
+      <header className="h-14 apple-toolbar px-4 sm:px-6 shrink-0 z-20 flex items-center justify-between gap-3 select-none">
+        {/* Left: macOS Traffic Lights & Document Breadcrumb */}
+        <div className="flex items-center gap-3 min-w-0">
+          {/* macOS Window Controls */}
+          <div className="hidden sm:flex items-center gap-2 pr-1 shrink-0">
+            <button 
+              type="button"
+              onClick={onCloseWorkspace}
+              className="w-3 h-3 rounded-full bg-[#FF5F56] hover:brightness-110 active:brightness-90 transition-all flex items-center justify-center group cursor-pointer"
+              title="Close Workspace"
+              aria-label="Close"
+            >
+              <X className="w-2 h-2 text-black/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <button 
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('fit-canvas-to-screen'))}
+              className="w-3 h-3 rounded-full bg-[#FFBD2E] hover:brightness-110 active:brightness-90 transition-all cursor-pointer"
+              title="Fit Screen"
+              aria-label="Fit"
+            />
+            <button 
+              type="button"
+              onClick={() => {
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen?.().catch(() => {});
+                } else {
+                  document.exitFullscreen?.().catch(() => {});
+                }
+              }}
+              className="w-3 h-3 rounded-full bg-[#27C93F] hover:brightness-110 active:brightness-90 transition-all cursor-pointer"
+              title="Toggle Fullscreen"
+              aria-label="Fullscreen"
+            />
+          </div>
+
+          <div className="hidden sm:block h-3.5 w-px bg-white/10 shrink-0" />
+
+          {/* Back Action & File Title */}
           <button 
+            type="button"
             onClick={onCloseWorkspace}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs font-semibold px-2.5 py-1.5 bg-white/2 hover:bg-white/5 border border-white/5 rounded-xl transition-all cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white text-xs font-medium px-2 py-1 rounded-lg hover:bg-white/5 transition-all cursor-pointer shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">New Inspection</span>
+            <span className="hidden md:inline">Dashboard</span>
           </button>
-          <div className="h-4 w-px bg-white/10 shrink-0"></div>
-          <h2 className="text-xs sm:text-sm font-medium text-slate-300 truncate max-w-[100px] xs:max-w-[140px] sm:max-w-none">
-            Layout: <span className="text-indigo-300 font-semibold">{activeReport?.name || 'Uploaded Screen'}</span>
-          </h2>
+
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-slate-500 text-xs hidden md:inline">/</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Compass className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span className="text-xs font-semibold text-white truncate max-w-[120px] sm:max-w-[200px]">
+                {activeReport?.name || 'Inspection Viewport'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Center: Apple Native Segmented Control */}
+        <div className="hidden lg:flex items-center apple-segmented-control">
+          {[
+            { id: ReviewType.FULL_AUDIT, label: 'Full UX/UI Audit' },
+            { id: ReviewType.UX_HEURISTICS, label: 'UX Heuristics' },
+            { id: ReviewType.UI_GUIDELINES, label: 'UI Guidelines' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setReviewType(tab.id)}
+              className={`px-3 py-1 text-xs font-medium rounded-[10px] transition-all cursor-pointer ${
+                reviewType === tab.id
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Apple Actions & Google Gemini Credits */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {user && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-mono text-slate-300 shrink-0">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs font-mono text-slate-300 shrink-0">
               <GoogleIcon className="w-3.5 h-3.5" />
-              <span>Gemini:</span>
-              <span className="text-emerald-400 font-bold">{user.geminiCredits ?? 50} Credits</span>
+              <span className="hidden xl:inline text-slate-400">Gemini:</span>
+              <span className="text-emerald-400 font-bold">{user.geminiCredits ?? 50}</span>
             </div>
           )}
+
           <AIProviderSelector />
 
-          <select 
-            value={reviewType}
-            onChange={(e) => setReviewType(e.target.value as ReviewType)}
-            className="bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono cursor-pointer max-w-[80px] xs:max-w-[110px] sm:max-w-none truncate"
-          >
-            <option value={ReviewType.FULL_AUDIT}>Full UX/UI Audit</option>
-            <option value={ReviewType.UX_HEURISTICS}>UX Heuristics Only</option>
-            <option value={ReviewType.UI_GUIDELINES}>UI Guidelines Only</option>
-          </select>
-
           <button 
+            type="button"
             onClick={handleRunFullAudit}
-            className="px-2.5 sm:px-4 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 text-xs font-semibold rounded-xl transition-all border border-indigo-500/20 flex items-center gap-1.5 cursor-pointer shrink-0"
-            title="Re-run heuristics analysis"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-xl transition-all shadow-sm shadow-blue-500/20 border border-blue-400/30 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-[0.98]"
+            title="Re-run analysis with Gemini"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Re-run Analysis</span>
+            <span className="hidden sm:inline">Analyze</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowSettingsDrawer(true)}
-            className="p-1.5 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl text-slate-300 hover:text-white transition-all flex items-center gap-2 px-2.5 sm:px-3 text-xs cursor-pointer shrink-0"
+            className="p-1.5 sm:px-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs cursor-pointer shrink-0 active:scale-[0.98]"
             title="Review Rules & Heuristic Weights"
           >
-            <Settings className="w-4 h-4 text-slate-400" />
-            <span className="hidden lg:inline">Rules & weights</span>
+            <Sliders className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden xl:inline">Config</span>
           </button>
 
           {onViewReport && (
             <button
+              type="button"
               onClick={onViewReport}
-              className="px-2.5 sm:px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/25 border border-indigo-400/20 flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-xl transition-all border border-white/15 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-[0.98]"
               title="Open the executive metrics report"
             >
-              <FileText className="w-3.5 h-3.5 sm:hidden" />
-              <span className="hidden sm:inline">View Audit Report</span>
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Report</span>
             </button>
           )}
         </div>
@@ -473,76 +535,170 @@ export default function ReviewWorkspace({
       
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
           
-          {/* LEFT COLUMN: Controls, Scope & Ask Critiq Expert Chat */}
-          <aside className="hidden xl:flex w-80 border-r border-white/5 bg-slate-950/30 backdrop-blur-lg shadow-2xl flex-col overflow-hidden shrink-0 z-10">
-            <div className="flex-1 overflow-y-auto p-5 space-y-5 min-h-0 custom-scrollbar">
-              {/* Custom Instruction & Strategy Card */}
-              {(activeReport?.userInstruction || activeReport?.correctionStrategy) && (
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl space-y-3 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-300">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Audit Focus Scope</span>
-                  </div>
-                  {activeReport.userInstruction ? (
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-mono text-slate-400 font-medium uppercase tracking-wider block">Custom Instruction</span>
-                      <p className="text-xs text-white leading-relaxed font-sans italic bg-black/20 p-2 rounded-xl border border-white/5">
-                        "{activeReport.userInstruction}"
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-mono text-slate-400 font-medium uppercase tracking-wider block">Custom Instruction</span>
-                      <p className="text-xs text-slate-400 leading-relaxed font-sans italic bg-black/20 p-2 rounded-xl border border-white/5">
-                        "Standard full heuristic audit"
-                      </p>
-                    </div>
-                  )}
-                  {activeReport.correctionStrategy && (
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-white/5">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Optimization Depth</span>
-                      <span className="text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/35 rounded px-1.5 py-0.5">
-                        {activeReport.correctionStrategy}
+          {/* LEFT COLUMN: Apple Pro Scope, Methodology & Spotlight Assistant */}
+          <aside className="hidden xl:flex w-80 apple-sidebar border-r flex-col overflow-hidden shrink-0 z-10">
+            {/* Top Apple Segmented Tab Switcher */}
+            <div className="p-3 border-b border-white/[0.06] shrink-0">
+              <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/5 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveLeftTab('scope')}
+                  className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    activeLeftTab === 'scope'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Audit Focus
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLeftTab('methodology')}
+                  className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    activeLeftTab === 'methodology'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Methodology
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 custom-scrollbar">
+              {activeLeftTab === 'scope' ? (
+                /* Focus Scope Tab */
+                <div className="space-y-3.5">
+                  <div className="apple-card p-3.5 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                        Scope & Objectives
+                      </span>
+                      <span className="text-[10px] font-mono text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold">
+                        {activeReport?.correctionStrategy || 'Balanced'}
                       </span>
                     </div>
-                  )}
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-slate-400 font-sans block">User Instruction:</span>
+                      <p className="text-xs text-slate-200 leading-relaxed font-sans bg-black/30 p-2.5 rounded-xl border border-white/5">
+                        "{activeReport?.userInstruction || 'Standard full cognitive UX, UI, and WCAG accessibility inspection.'}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Engine Details */}
+                  <div className="apple-card p-3.5 rounded-2xl space-y-2">
+                    <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+                      Active Intelligence
+                    </span>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-slate-400">Provider:</span>
+                        <span className="font-semibold text-white flex items-center gap-1">
+                          <GoogleIcon className="w-3 h-3" /> Google Gemini
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-slate-400">Evaluation Model:</span>
+                        <span className="font-mono text-blue-300">3.6 Flash Vision</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-slate-400">Compliance Standard:</span>
+                        <span className="text-emerald-400 font-mono">WCAG 2.1 AA</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Methodology Tab */
+                <div className="space-y-3.5">
+                  {(() => {
+                    const meth = MethodologyRegistry.getById(selectedMethodologyId) || METHODOLOGIES[0];
+                    return (
+                      <div className="apple-card p-3.5 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white tracking-tight">{meth.name}</span>
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                            Active
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                          {meth.description}
+                        </p>
+
+                        <div className="pt-2 border-t border-white/5 space-y-2">
+                          <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                            Category Weight Profile
+                          </span>
+                          {[
+                            { key: 'usability', name: 'Usability (UX)' },
+                            { key: 'accessibility', name: 'Accessibility (WCAG)' },
+                            { key: 'visualDesign', name: 'Visual Layout' },
+                            { key: 'designSystem', name: 'Design Tokens' },
+                          ].map(c => {
+                            const val = meth.weightProfile[c.key as keyof typeof meth.weightProfile] || 0;
+                            return (
+                              <div key={c.key} className="space-y-0.5">
+                                <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                                  <span>{c.name}</span>
+                                  <span className="text-blue-400 font-bold">{val}%</span>
+                                </div>
+                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${val}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowSettingsDrawer(true)}
+                          className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition-all text-center block mt-2 cursor-pointer"
+                        >
+                          Change Methodology & Weights →
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
 
-            {/* Ask Critiq Expert AI Proxy Chat Container */}
-            <div className="p-4 border-t border-white/5 bg-slate-950/40 backdrop-blur-md shrink-0">
-              <div className="flex items-center justify-between mb-3">
+            {/* Ask Critiq Expert (Spotlight Assistant) */}
+            <div className="p-3.5 border-t border-white/[0.06] bg-black/40 shrink-0 space-y-2.5">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Lightbulb className="w-4 h-4 text-indigo-400 animate-pulse" />
-                  <span className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-wider">
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  <span className="text-xs font-semibold text-white font-sans">
                     Ask Critiq Expert
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">Local Expert Proxy</span>
+                <span className="text-[10px] font-mono text-slate-500">Gemini Assistant</span>
               </div>
 
-              {/* Chat history */}
+              {/* Chat Stream */}
               <div 
                 ref={chatContainerRef}
-                className="h-32 overflow-y-auto space-y-3 pr-1 mb-3 custom-scrollbar text-left"
+                className="h-28 overflow-y-auto space-y-2 pr-1 custom-scrollbar text-left text-xs"
               >
                 {chatHistory.map((msg) => (
                   <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-[95%] p-2 rounded-xl text-xs leading-relaxed ${
+                    <div className={`max-w-[92%] p-2 rounded-2xl text-[11px] leading-relaxed ${
                       msg.sender === 'user' 
-                        ? 'bg-indigo-600/80 text-white rounded-tr-none' 
-                        : 'bg-white/5 text-slate-300 border border-white/5 rounded-tl-none'
+                        ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' 
+                        : 'bg-white/10 text-slate-200 border border-white/5 rounded-bl-sm'
                     }`}>
                       {msg.text}
                     </div>
                   </div>
                 ))}
                 {isChatLoading && (
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-mono">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
+                  <div className="flex items-center gap-1 text-slate-400 text-xs font-mono py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]" />
                   </div>
                 )}
               </div>
@@ -552,13 +708,13 @@ export default function ReviewWorkspace({
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask e.g. How to correct 8px margins?"
-                  className="w-full bg-[#12131a] border border-white/10 rounded-xl py-2 pl-3 pr-9 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all font-sans"
+                  placeholder="Ask e.g. How to fix 4.5:1 contrast?"
+                  className="w-full bg-[#0a0c16] border border-white/10 focus:border-blue-500/60 rounded-xl py-2 pl-3 pr-8 text-xs text-white placeholder:text-slate-500 focus:outline-none transition-all font-sans"
                 />
-                <input type="submit" className="hidden" />
                 <button 
                   type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-white/10 hover:bg-white/20 rounded-lg text-indigo-300 transition-colors cursor-pointer"
+                  disabled={isChatLoading || !chatInput.trim()}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-lg text-white transition-colors cursor-pointer"
                 >
                   <Send className="w-3 h-3" />
                 </button>
@@ -657,76 +813,67 @@ export default function ReviewWorkspace({
               )}
             </div>
 
-            {/* Bottom Toolbar & Status Bar */}
-            <footer className="h-12 border-t border-white/5 bg-slate-950/40 backdrop-blur-md px-5 flex items-center justify-between shrink-0 z-10 text-xs font-mono text-slate-300 select-none">
-              {/* Left Group: Dynamic status and findings count */}
+            {/* Apple macOS/iPadOS Status Bar */}
+            <footer className="h-11 border-t border-white/[0.08] bg-[#070a16]/80 backdrop-blur-xl px-5 flex items-center justify-between shrink-0 z-10 text-xs font-mono text-slate-300 select-none pb-[var(--safe-area-inset-bottom)]">
+              {/* Left: Dynamic findings count & Apple badge */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/15 border border-emerald-500/30 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-emerald-300 font-bold text-[11px]">{critiqReview?.issues.length || 0} Findings</span>
+                  <span className="text-emerald-300 font-semibold text-[11px] font-sans">{critiqReview?.issues.length || 0} Findings</span>
                 </div>
 
-                {/* Mobile Side Drawer Activators */}
+                {/* Mobile Drawer Activators */}
                 {(activeReport?.userInstruction || activeReport?.correctionStrategy) && (
                   <button
+                    type="button"
                     onClick={() => setShowLeftSidebarMobile(true)}
-                    className="xl:hidden px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1 font-sans text-[11px]"
+                    className="xl:hidden px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1 font-sans text-[11px]"
                   >
-                    <Sparkles className="w-3 h-3 text-indigo-400" />
-                    <span>Focus Scope</span>
+                    <Sparkles className="w-3 h-3 text-blue-400" />
+                    <span>Scope</span>
                   </button>
                 )}
 
                 <button
+                  type="button"
                   onClick={() => setShowRightSidebarMobile(true)}
-                  className="lg:hidden px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1 font-sans text-[11px]"
+                  className="lg:hidden px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1 font-sans text-[11px]"
                 >
-                  <Compass className="w-3 h-3 text-indigo-400" />
-                  <span>Inspect</span>
+                  <Compass className="w-3 h-3 text-blue-400" />
+                  <span>Inspector</span>
                 </button>
               </div>
 
-              {/* Center Group: Premium Inspection Status Pill */}
+              {/* Center: Inspected Finding Pill */}
               <div className="hidden lg:block truncate max-w-md">
                 {storeSelectedIssueId ? (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[11px] text-slate-300">
-                    <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse shrink-0" />
-                    <span className="text-slate-400 font-medium font-sans">Inspecting:</span>
-                    <span className="text-white font-semibold truncate font-sans">{critiqReview?.issues.find(i => i.id === storeSelectedIssueId)?.title}</span>
+                  <div className="flex items-center gap-2 px-3 py-0.5 bg-white/[0.04] rounded-full border border-white/10 text-[11px] text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                    <span className="text-slate-400 font-medium font-sans">Selected:</span>
+                    <span className="text-white font-medium truncate font-sans">{critiqReview?.issues.find(i => i.id === storeSelectedIssueId)?.title}</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white/2 rounded-full border border-white/3 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-2 px-3 py-0.5 bg-white/[0.02] rounded-full border border-white/5 text-[11px] text-slate-500">
                     <span className="w-1 h-1 rounded-full bg-slate-600 shrink-0" />
-                    <span className="font-sans">Select any hotspot marker or list item to inspect...</span>
+                    <span className="font-sans">Click on canvas markers or sidebar items to inspect details</span>
                   </div>
                 )}
               </div>
 
-              {/* Right Group: Action buttons */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                {onViewReport && (
-                  <button
-                    onClick={onViewReport}
-                    className="px-2.5 sm:px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold font-sans transition-all pointer-events-auto cursor-pointer flex items-center gap-1 shadow-md shadow-indigo-600/15"
-                    title="View overall quality metrics summary"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">View Audit Report</span>
-                  </button>
-                )}
-
+              {/* Right: Export actions */}
+              <div className="flex items-center gap-2 sm:gap-2.5">
                 <button
+                  type="button"
                   onClick={handleExportReport}
-                  className="px-2.5 sm:px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 rounded-xl transition-all pointer-events-auto cursor-pointer font-semibold font-sans text-xs flex items-center gap-1"
-                  title="Download raw report JSON"
+                  className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 rounded-lg transition-all cursor-pointer text-xs flex items-center gap-1 font-medium font-sans active:scale-[0.98]"
+                  title="Export raw JSON review"
                 >
-                  <Download className="w-3.5 h-3.5 text-indigo-400" />
+                  <Download className="w-3 h-3 text-blue-400" />
                   <span className="hidden sm:inline">Export JSON</span>
                 </button>
 
-                <div className="h-4 w-px bg-white/10" />
-                
-                <span className="text-[10px] text-slate-500 font-mono hidden xs:inline">v2.1</span>
+                <div className="h-3.5 w-px bg-white/10" />
+                <span className="text-[10px] text-slate-500 font-mono">Apple macOS UI</span>
               </div>
             </footer>
           </main>
