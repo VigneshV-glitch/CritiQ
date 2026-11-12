@@ -99,17 +99,20 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
         />
 
         {/* Issue mini-markers */}
-        {issues.map((issue) => (
-          <div
-            key={issue.id}
-            style={{
-              left: `${(issue.boundingBox.x / 100) * miniWidth}px`,
-              top: `${(issue.boundingBox.y / 100) * miniHeight}px`,
-              ...getMarkerStyle(issue.severity)
-            }}
-            className="absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 shadow-sm"
-          />
-        ))}
+        {issues.map((issue) => {
+          if (!issue.boundingBox) return null;
+          return (
+            <div
+              key={issue.id}
+              style={{
+                left: `${(issue.boundingBox.x / 100) * miniWidth}px`,
+                top: `${(issue.boundingBox.y / 100) * miniHeight}px`,
+                ...getMarkerStyle(issue.severity)
+              }}
+              className="absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 shadow-sm"
+            />
+          );
+        })}
       </div>
     </div>
   );
