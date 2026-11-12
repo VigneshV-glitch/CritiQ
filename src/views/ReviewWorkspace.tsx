@@ -740,15 +740,15 @@ export default function ReviewWorkspace({
                   animate={{ x: 0 }}
                   exit={{ x: '-100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                  className="absolute left-0 top-0 bottom-0 w-72 bg-slate-950 border-r border-white/10 shadow-2xl z-40 flex flex-col p-5 space-y-5 overflow-y-auto xl:hidden"
+                  className="absolute left-0 top-0 bottom-0 w-72 apple-sidebar shadow-2xl z-40 flex flex-col p-5 space-y-5 overflow-y-auto xl:hidden"
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
-                    <span className="text-xs font-mono font-bold text-slate-300">Audit Focus Scope</span>
+                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] shrink-0">
+                    <span className="text-xs font-semibold text-white/80 tracking-tight">Audit Focus Scope</span>
                     <button 
                       onClick={() => setShowLeftSidebarMobile(false)}
-                      className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer"
+                      className="w-6 h-6 flex items-center justify-center rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-slate-400 hover:text-white cursor-pointer transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   {/* Custom Instruction & Strategy Card Mobile */}
@@ -879,7 +879,7 @@ export default function ReviewWorkspace({
           </main>
 
           {/* RIGHT COLUMN: Issue Inspector Sidebar & Embedded Ask Critiq Expert Chat with glass morphism */}
-          <aside className="hidden lg:flex w-96 border-l border-white/5 bg-slate-950/30 backdrop-blur-lg shadow-2xl flex-col overflow-hidden shrink-0 z-10">
+          <aside className="hidden lg:flex w-96 apple-sidebar flex-col overflow-hidden shrink-0 z-10" style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
             {/* Main scrollable list/detail panels */}
             <div className="flex-1 overflow-y-auto p-5 min-h-0 custom-scrollbar">
               {critiqReview ? (
@@ -910,15 +910,15 @@ export default function ReviewWorkspace({
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                  className="absolute right-0 top-0 bottom-0 w-80 max-w-[90vw] bg-slate-950 border-l border-white/10 shadow-2xl z-40 flex flex-col overflow-hidden lg:hidden"
+                  className="absolute right-0 top-0 bottom-0 w-80 max-w-[90vw] apple-sidebar shadow-2xl z-40 flex flex-col overflow-hidden lg:hidden"
                 >
-                  <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-                    <span className="text-xs font-mono font-bold text-slate-300">Inspector & Expert</span>
+                  <div className="flex items-center justify-between p-4 border-b border-white/[0.08] shrink-0">
+                    <span className="text-xs font-semibold text-white/80 tracking-tight">Inspector & Expert</span>
                     <button 
                       onClick={() => setShowRightSidebarMobile(false)}
-                      className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer"
+                      className="w-6 h-6 flex items-center justify-center rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-slate-400 hover:text-white cursor-pointer transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   
@@ -934,7 +934,7 @@ export default function ReviewWorkspace({
                   </div>
 
                   {/* Embedded Ask Expert chat */}
-                  <div className="p-4 border-t border-white/10 bg-slate-950/60 shrink-0">
+                  <div className="p-4 border-t border-white/[0.06] bg-black/40 backdrop-blur-xl shrink-0">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
                         <Lightbulb className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />

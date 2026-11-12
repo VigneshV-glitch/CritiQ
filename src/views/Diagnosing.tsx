@@ -297,7 +297,7 @@ export default function Diagnosing({
       </div>
 
       {/* Header with Workflow Progress */}
-      <header className="h-16 flex items-center justify-between px-6 z-20 shrink-0 gap-2">
+      <header className="h-14 apple-toolbar px-6 z-20 shrink-0 flex items-center justify-between gap-2 select-none">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4 text-white" />

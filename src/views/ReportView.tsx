@@ -353,7 +353,7 @@ export default function ReportView({
       </div>
 
       {/* Header with Workflow Progress */}
-      <header className="h-16 shrink-0 px-4 sm:px-8 flex items-center justify-between z-20 bg-white/[0.01] backdrop-blur-md border-b border-white/5 gap-2">
+      <header className="h-14 apple-toolbar px-4 sm:px-8 z-20 shrink-0 flex items-center justify-between gap-2 select-none">
         <div className="flex items-center gap-2.5 min-w-0">
           <Button
             variant="outline"
@@ -435,25 +435,25 @@ export default function ReportView({
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-black/30 rounded-xl border border-white/5">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-rose-400 font-bold">Critical</span>
+                  <span className="font-bold" style={{ color: '#FF453A' }}>Critical</span>
                   <span className="text-white font-bold">{criticalIssues.length}</span>
                 </div>
               </div>
               <div className="p-3 bg-black/30 rounded-xl border border-white/5">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-amber-400 font-bold">High</span>
+                  <span className="font-bold" style={{ color: '#FF9F0A' }}>High</span>
                   <span className="text-white font-bold">{highIssues.length}</span>
                 </div>
               </div>
               <div className="p-3 bg-black/30 rounded-xl border border-white/5">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-indigo-400 font-bold">Medium</span>
+                  <span className="font-bold" style={{ color: '#FFD60A' }}>Medium</span>
                   <span className="text-white font-bold">{mediumIssues.length}</span>
                 </div>
               </div>
               <div className="p-3 bg-black/30 rounded-xl border border-white/5">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-400 font-bold">Low / Info</span>
+                  <span className="font-bold" style={{ color: '#0A84FF' }}>Low / Info</span>
                   <span className="text-white font-bold">{lowIssues.length}</span>
                 </div>
               </div>
@@ -501,19 +501,25 @@ export default function ReportView({
                     <span className="text-xs font-semibold text-white font-sans">
                       {idx + 1}. {issue.title}
                     </span>
-                    <Badge
-                      variant={
-                        issue.severity === 'critical' ? 'danger' : issue.severity === 'high' ? 'warning' : 'primary'
+                    <span
+                      className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border"
+                      style={
+                        issue.severity === 'critical'
+                          ? { color: '#FF453A', background: 'rgba(255,69,58,0.12)', borderColor: 'rgba(255,69,58,0.3)' }
+                          : issue.severity === 'high'
+                          ? { color: '#FF9F0A', background: 'rgba(255,159,10,0.12)', borderColor: 'rgba(255,159,10,0.3)' }
+                          : issue.severity === 'medium'
+                          ? { color: '#FFD60A', background: 'rgba(255,214,10,0.12)', borderColor: 'rgba(255,214,10,0.3)' }
+                          : { color: '#0A84FF', background: 'rgba(10,132,255,0.12)', borderColor: 'rgba(10,132,255,0.3)' }
                       }
-                      size="sm"
                     >
                       {issue.severity.toUpperCase()}
-                    </Badge>
+                    </span>
                   </div>
                   <p className="text-xs text-slate-400 font-sans leading-relaxed">
                     {issue.description}
                   </p>
-                  <div className="text-[11px] text-indigo-200 font-sans bg-indigo-500/10 p-2.5 rounded-lg border border-indigo-500/20">
+                  <div className="text-[11px] font-sans p-2.5 rounded-xl border" style={{ color: 'rgba(10,132,255,0.9)', background: 'rgba(10,132,255,0.08)', borderColor: 'rgba(10,132,255,0.2)' }}>
                     <strong>Action:</strong> {issue.recommendation}
                   </div>
                 </div>

@@ -23,7 +23,6 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
   const miniHeight = (imageSize.height || 800) * miniScale;
 
   // Compute current visible viewport box relative to the image
-  // Width of image in pixels is imageSize.width, etc.
   const visibleLeft = Math.max(0, -panOffset.x / scale);
   const visibleTop = Math.max(0, -panOffset.y / scale);
   const visibleWidth = Math.min(imageSize.width, viewportSize.width / scale);
@@ -37,12 +36,13 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
     height: visibleHeight * miniScale,
   };
 
-  const getMarkerColor = (sev: string) => {
+  // Apple system colors for severity markers
+  const getMarkerStyle = (sev: string): React.CSSProperties => {
     switch (sev.toLowerCase()) {
-      case 'critical': return 'bg-rose-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-amber-500';
-      default: return 'bg-sky-500';
+      case 'critical': return { backgroundColor: '#FF453A' };
+      case 'high':     return { backgroundColor: '#FF9F0A' };
+      case 'medium':   return { backgroundColor: '#FFD60A' };
+      default:         return { backgroundColor: '#0A84FF' };
     }
   };
 
@@ -64,10 +64,10 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
   };
 
   return (
-    <div className="bg-black/80 backdrop-blur-md p-2 rounded-2xl border border-white/5 shadow-2xl flex flex-col gap-1.5 select-none pointer-events-auto">
+    <div className="apple-hud p-2 rounded-2xl flex flex-col gap-1.5 select-none pointer-events-auto" style={{ minWidth: 128 }}>
       <div className="flex justify-between items-center text-[8px] font-mono font-black text-slate-500 uppercase tracking-wider px-1">
-        <span>Minimap Navigation</span>
-        <span className="text-indigo-400">interactive</span>
+        <span>Minimap</span>
+        <span style={{ color: '#0A84FF' }}>interactive</span>
       </div>
 
       <div
@@ -92,8 +92,10 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
             top: `${viewRect.top}px`,
             width: `${viewRect.width}px`,
             height: `${viewRect.height}px`,
+            borderColor: '#0A84FF',
+            backgroundColor: 'rgba(10,132,255,0.08)'
           }}
-          className="absolute border-2 border-indigo-500 bg-indigo-500/10 rounded pointer-events-none transition-all duration-75"
+          className="absolute border-2 rounded pointer-events-none transition-all duration-75"
         />
 
         {/* Issue mini-markers */}
@@ -103,10 +105,9 @@ export default function MiniMap({ issues, imageUrl }: MiniMapProps) {
             style={{
               left: `${(issue.boundingBox.x / 100) * miniWidth}px`,
               top: `${(issue.boundingBox.y / 100) * miniHeight}px`,
+              ...getMarkerStyle(issue.severity)
             }}
-            className={`absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 shadow-sm ${getMarkerColor(
-              issue.severity
-            )}`}
+            className="absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 shadow-sm"
           />
         ))}
       </div>
